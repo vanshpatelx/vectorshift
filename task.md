@@ -1,3 +1,0 @@
-- [ ] Authorize and connect to Hubspot
-- [ ] frontend connections
-- [ ] types of data we fetch to use in vectorshift
