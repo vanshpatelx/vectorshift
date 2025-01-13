@@ -21,6 +21,9 @@ authorization_url = (
     f"&redirect_uri={urllib.parse.quote(REDIRECT_URI)}"
 )
 
+# Function to initiate the HubSpot authorization process
+# Function generates a unique state, encodes it, stores it in Redis, and returns an authorization URL for the user to visit.
+
 async def authorize_hubspot(user_id, org_id):
     state_data = {
         'state': secrets.token_urlsafe(32),
@@ -30,6 +33,10 @@ async def authorize_hubspot(user_id, org_id):
     encoded_state = base64.urlsafe_b64encode(json.dumps(state_data).encode('utf-8')).decode('utf-8')
     await add_key_value_redis(f'hubspot_state:{org_id}:{user_id}', encoded_state, expire=600) # 10m
     return f'{authorization_url}&state={encoded_state}'
+
+
+# Function to handle the OAuth2 callback from HubSpot and exchange code for an access token
+# Function receives the code and state from HubSpot, validates the state, and exchanges the authorization code for an access token.
 
 async def oauth2callback_hubspot(request: Request):
     if request.query_params.get('error'):
@@ -93,6 +100,9 @@ async def oauth2callback_hubspot(request: Request):
     """
     return HTMLResponse(content=close_window_script)
 
+# Function to retrieve HubSpot credentials stored in Redis
+# Retrieves the access credentials from Redis for a specific user and organization, validating the format before returning them.
+
 async def get_hubspot_credentials(user_id, org_id):
     credentials = await get_value_redis(f'hubspot_credentials:{org_id}:{user_id}')
     if not credentials:
@@ -105,6 +115,10 @@ async def get_hubspot_credentials(user_id, org_id):
 
     await delete_key_redis(f'hubspot_credentials:{org_id}:{user_id}')
     return credentials
+
+
+# Function to create an IntegrationItem metadata object from a HubSpot API response
+# Constructs an IntegrationItem object using the response data from HubSpot, including optional parent ID and name.
 
 def create_integration_item_metadata_object(
     response_json: str, item_type: str, parent_id=None, parent_name=None
@@ -119,6 +133,10 @@ def create_integration_item_metadata_object(
         parent_path_or_name=parent_name,
     )
     return integration_item_metadata
+
+
+# Function to fetch items from HubSpot API recursively
+# Function retrieves paginated items from HubSpot API, appending them to a list for further processing.
 
 def fetch_items(
     access_token: str, url: str, aggregated_response: list, limit=None
@@ -139,6 +157,11 @@ def fetch_items(
         else:
             return
     else: print("erro")
+
+
+
+# Function to retrieve HubSpot items (companies) using stored credentials
+# Function retrieves a list of HubSpot company data and converts them into IntegrationItem objects.
 
 async def get_items_hubspot(credentials):
     credentials = json.loads(credentials)
